@@ -3,8 +3,11 @@
 // 2) python3 -m http.server
 // 3) http://localhost:8000
 
+pub mod context;
+
 extern crate wasm_bindgen;
 
+use std::alloc::{GlobalAlloc, Layout};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -12,10 +15,12 @@ extern "C" {
     pub fn alert(s: &str);
 }
 
+/*
 #[wasm_bindgen]
 pub fn greet(name: &str) {
     alert(&format!("Hello, {}!", name));
 }
+*/
 
 // Called when the wasm module is instantiated
 #[wasm_bindgen(start)]
@@ -26,10 +31,19 @@ fn main() -> Result<(), JsValue> {
     let document = window.document().expect("should have a document on window");
     let body = document.body().expect("document should have a body");
 
+    let header = document.create_element("header")?;
+    let subheader = document.create_element("img")?;
+    subheader.set_attribute("src", "/media/pro.jpg")?;
+
+    header.append_child(&subheader)?;
+    //    header.set_class_name("logo");
+    //header.set_inner_html("<img src=\"/media/pro.jpg\" alt=\"Logo\">");
+
     // Manufacture the element we're gonna append
     let val = document.create_element("p")?;
     val.set_inner_html("Hello from Rust!");
 
+    body.append_child(&header)?;
     body.append_child(&val)?;
 
     Ok(())
