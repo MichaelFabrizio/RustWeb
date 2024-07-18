@@ -4,10 +4,11 @@
 // 3) http://localhost:8000
 
 pub mod context;
+pub mod wasm_allocator;
 
+extern crate core;
 extern crate wasm_bindgen;
 
-use std::alloc::{GlobalAlloc, Layout};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
