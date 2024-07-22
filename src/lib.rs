@@ -32,19 +32,31 @@ fn main() -> Result<(), JsValue> {
     let document = window.document().expect("should have a document on window");
     let body = document.body().expect("document should have a body");
 
-    let header = document.create_element("header")?;
-    let subheader = document.create_element("img")?;
-    subheader.set_attribute("src", "/media/pro.jpg")?;
+    // STEP 1: PARSING EXISTENT HTML BLOCKS
+    // POSSIBILITY A) 'VALID' HTML CONSTRUCT
+    // POSSIBILITY B) 'INVALID' HTML CONSTRUCT
+    //
+    // Goal: Not all user defined HTML can be regarded as valid within the scope of this program.
+    // Because we will be building a component model, there is a translational layer which converts between the
+    // HTML DOM to VIRTUAL DOM to the COMPONENT HIERARCHY
+    //
+    // Example:
+    // An entity ID = 1 could have a Nav component attached, which implies it is nested within a
+    // <nav> block.
 
-    header.append_child(&subheader)?;
+    //    let header = document.create_element("header")?;
+    //    let subheader = document.create_element("img")?;
+    //    subheader.set_attribute("src", "/media/pro.jpg")?;
+
+    //    header.append_child(&subheader)?;
     //    header.set_class_name("logo");
     //header.set_inner_html("<img src=\"/media/pro.jpg\" alt=\"Logo\">");
 
     // Manufacture the element we're gonna append
-    let val = document.create_element("p")?;
-    val.set_inner_html("Hello from Rust!");
+    let val = document.create_element("h1")?;
+    val.set_inner_html("Hello from Rust Test Change!");
 
-    body.append_child(&header)?;
+    //    body.append_child(&header)?;
     body.append_child(&val)?;
 
     Ok(())
