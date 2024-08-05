@@ -7,6 +7,7 @@ authors = ["Mike Fabrizio <mfabrizio.dev@gmail.com>"]
 crate-type = ["cdylib"]
 
 [dependencies]
+js-sys = "0.3.69"
 wasm-bindgen = "0.2.92"
 
 [dependencies.web-sys]
@@ -16,5 +17,11 @@ features = [
   'Element',
   'HtmlElement',
   'Node',
-  'Window',
+  'Window', # WebGL libraries past this point
+  'HtmlCanvasElement',
+  'WebGlBuffer',
+  'WebGlVertexArrayObject',
+  'WebGl2RenderingContext',
+  'WebGlProgram',
+  'WebGlShader',
 ]
