@@ -16,6 +16,13 @@ use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlShader};
 #[wasm_bindgen]
 extern "C" {
     pub fn alert(s: &str);
+
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(a: &str);
+}
+
+macro_rules! console_log {
+    ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
 }
 
 /*
@@ -107,6 +114,12 @@ fn main() -> Result<(), JsValue> {
 
     let canvas = document.get_element_by_id("canvas").unwrap();
     let canvas: web_sys::HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>()?;
+
+    let performance = window
+        .performance()
+        .expect("performance should be available");
+
+    console_log!("the current time (in ms) is {}", performance.now());
 
     // BEGIN WEBGL CODE EXAMPLE SNIPPET
     // URL: https://rustwasm.github.io/docs/wasm-bindgen/examples/webgl.html
@@ -218,6 +231,7 @@ fn main() -> Result<(), JsValue> {
     //    body.append_child(&header)?;
     //body.append_child(&val)?;
 
+    console_log!("the current time (in ms) is {}", performance.now());
     Ok(())
 }
 

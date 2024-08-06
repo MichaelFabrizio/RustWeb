@@ -17,7 +17,9 @@ features = [
   'Element',
   'HtmlElement',
   'Node',
-  'Window', # WebGL libraries past this point
+  'Window', 
+  'Performance',
+  # WebGL libraries past this point
   'HtmlCanvasElement',
   'WebGlBuffer',
   'WebGlVertexArrayObject',
