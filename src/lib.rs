@@ -13,6 +13,10 @@ extern crate web_sys;
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlShader};
 
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+use crate::wasm_allocator::*;
+
 #[wasm_bindgen]
 extern "C" {
     pub fn alert(s: &str);
@@ -93,21 +97,17 @@ pub fn link_program(
     }
 }
 
+fn perf_to_system(amt: f64) -> SystemTime {
+    let secs = (amt as u64) / 1_000;
+    let nanos = (((amt as u64) % 1_000) as u32) * 1_000_000;
+    UNIX_EPOCH + Duration::new(secs, nanos)
+}
+
 // END WEBGL CODE EXAMPLE SNIPPET
 
 // Called when the wasm module is instantiated
 #[wasm_bindgen(start)]
 fn main() -> Result<(), JsValue> {
-    //    use web_sys::console;
-
-    // console::log_1(&"Hello using web-sys".into());
-    //
-
-    //    let js: JsValue = 4.into();
-    //    console::log_2(&"Logging arbitrary values looks like".into(), &js);
-
-    // Use `web_sys`'s global `window` function to get a handle on the global
-    // window object.
     let window = web_sys::window().expect("no global `window` exists");
     let document = window.document().expect("should have a document on window");
     let body = document.body().expect("document should have a body");
@@ -118,6 +118,9 @@ fn main() -> Result<(), JsValue> {
     let performance = window
         .performance()
         .expect("performance should be available");
+
+    let wasm_alloc_size = WasmAllocator::memory_size();
+    console_log!("Alloc size {}", wasm_alloc_size);
 
     console_log!("the current time (in ms) is {}", performance.now());
 
