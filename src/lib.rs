@@ -4,6 +4,8 @@
 // 3) http://localhost:8000
 
 pub mod context;
+
+#[macro_use]
 pub mod wasm_allocator;
 
 extern crate core;
@@ -25,8 +27,12 @@ extern "C" {
     fn log(a: &str);
 }
 
-macro_rules! console_log {
+#[macro_use]
+mod macros {
+    #[macro_export]
+    macro_rules! console_log {
     ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
+}
 }
 
 /*
@@ -121,6 +127,17 @@ fn main() -> Result<(), JsValue> {
 
     let wasm_alloc_size = WasmAllocator::memory_size();
     console_log!("Alloc size {}", wasm_alloc_size);
+
+    let wasm_allocator = WasmAllocator {
+        lead_ptr: core::ptr::null_mut(),
+        tracking_ptr: core::ptr::null_mut(),
+    };
+
+    let layout = std::alloc::Layout::from_size_align(65536, 2);
+
+    let returned_ptr = unsafe { WasmAllocator::internal_alloc(1) };
+
+    console_log!("Returned ptr: {:?}", returned_ptr);
 
     console_log!("the current time (in ms) is {}", performance.now());
 

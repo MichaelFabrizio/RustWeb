@@ -1,13 +1,14 @@
-//use core::arch::wasm32;
 use core::ptr::null_mut;
-
 use std::alloc::{GlobalAlloc, Layout};
+
+use super::{console_log, log};
 
 const PAGE_SIZE: usize = 65536;
 
+// Consider changing visibilities to pub(crate)
 pub struct WasmAllocator {
-    lead_ptr: *mut u8,
-    tracking_ptr: *mut u8,
+    pub lead_ptr: *mut u8,
+    pub tracking_ptr: *mut u8,
 }
 
 impl WasmAllocator {
