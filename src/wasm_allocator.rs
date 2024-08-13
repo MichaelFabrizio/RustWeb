@@ -6,17 +6,17 @@ use super::{console_log, log};
 const PAGE_SIZE: usize = 65536;
 
 // Consider changing visibilities to pub(crate)
-pub struct WasmAllocator {
+pub(crate) struct WasmAllocator {
     pub lead_ptr: *mut u8,
     pub tracking_ptr: *mut u8,
 }
 
 impl WasmAllocator {
-    pub fn memory_size() -> usize {
+    pub(crate) fn memory_size() -> usize {
         core::arch::wasm32::memory_size(0)
     }
 
-    pub unsafe fn internal_alloc(pages: usize) -> *mut u8 {
+    pub(crate) unsafe fn internal_alloc(pages: usize) -> *mut u8 {
         let ptr = core::arch::wasm32::memory_grow(0, pages);
 
         if ptr != usize::MAX {
