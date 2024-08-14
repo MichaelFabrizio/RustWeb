@@ -3,10 +3,11 @@
 // 2) python3 -m http.server
 // 3) http://localhost:8000
 
-pub mod context;
+pub(crate) mod context;
 
 #[macro_use]
-pub mod wasm_allocator;
+pub(crate) mod wasm_allocator;
+pub(crate) mod keyvector;
 pub(crate) mod web_core;
 
 extern crate core;
@@ -127,14 +128,10 @@ fn main() -> Result<(), JsValue> {
         .performance()
         .expect("performance should be available");
 
-    let wasm_alloc_size = WasmAllocator::memory_size();
-    console_log!("Alloc size {}", wasm_alloc_size);
-
-    let layout = std::alloc::Layout::from_size_align(65536, 2);
-
     console_log!("the current time (in ms) is {}", performance.now());
 
-    let webcore: WebCore = WebCore::new();
+    let mut webcore: WebCore = WebCore::new();
+    webcore.init();
 
     // BEGIN WEBGL CODE EXAMPLE SNIPPET
     // URL: https://rustwasm.github.io/docs/wasm-bindgen/examples/webgl.html
