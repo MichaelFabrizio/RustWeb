@@ -19,7 +19,6 @@ use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlShader};
 
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use crate::wasm_allocator::WasmAllocator;
 use crate::web_core::WebCore;
 
 #[wasm_bindgen]
@@ -44,6 +43,10 @@ pub fn greet(name: &str) {
     alert(&format!("Hello, {}!", name));
 }
 */
+
+struct TestObject {
+    a: i64,
+}
 
 // BEGIN WEBGL PROGRAM LINKING EXAMPLE
 // AND SHADER COMPILATION FUNCTIONS
@@ -132,6 +135,7 @@ fn main() -> Result<(), JsValue> {
 
     let mut webcore: WebCore = WebCore::new();
     webcore.init();
+    webcore.addkeyvec::<TestObject, u8, 256>();
 
     // BEGIN WEBGL CODE EXAMPLE SNIPPET
     // URL: https://rustwasm.github.io/docs/wasm-bindgen/examples/webgl.html
