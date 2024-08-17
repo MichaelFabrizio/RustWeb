@@ -7,7 +7,6 @@ pub(crate) mod context;
 
 #[macro_use]
 pub(crate) mod wasm_allocator;
-pub(crate) mod keyvector;
 pub(crate) mod web_core;
 
 extern crate core;

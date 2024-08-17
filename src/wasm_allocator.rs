@@ -25,7 +25,13 @@ impl WasmAllocator {
             let ptr = (ptr * PAGE_SIZE) as *mut u8;
             ptr
         } else {
-            null_mut()
+            // When hooked up to the GlobalAlloc::alloc() function, returning null_mut() is the
+            // fail condition. However, we must manually panic!() here if we are bypassing
+            // GlobalAlloc altogether.
+
+            //null_mut() // Not correct when skipping GlobalAlloc
+            console_log!("[WasmAllocator::internal_alloc()] ERROR: Out of memory condition");
+            panic!();
         }
     }
 
