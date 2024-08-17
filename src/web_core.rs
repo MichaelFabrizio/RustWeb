@@ -1,10 +1,11 @@
+use core::fmt::Debug;
 use std::mem::{align_of, size_of};
 use std::ptr::addr_of_mut;
 
 use super::{console_log, log};
 use crate::wasm_allocator::WasmAllocator;
 
-pub(crate) trait IndexVariable: Copy {
+trait IndexVariable: Copy + Debug {
     const MAX_VALUE: usize;
 }
 
@@ -74,7 +75,7 @@ impl WebCore {
             panic!();
         }
 
-        // This panic is avoidable by adding padded bytes necessary to obtain a suitable aligned
+        // This panic is avoidable. By adding padded bytes necessary to obtain a suitable aligned
         // pointer
         if (tracking_ptr_usize % align_of::<KeyVector<T, I, N>>()) != 0 {
             console_log!("[WebCore::addkeyvec()] ERROR: Found unaligned tracking pointer");
@@ -85,13 +86,25 @@ impl WebCore {
         // tracking_ptr is suitably aligned to be converted into *mut KeyVector<T, I, N>
         let tracking_ptr = self.wasm_allocator.tracking_ptr as *mut KeyVector<T, I, N>;
 
-        // Because placement new is not available, we initialize the usize 'length' as all zeroes
+        // Because placement new is not available, we initialize the field addresses of
+        // the first three variables (length, capacity, and indices set to ZERO.)
+
         unsafe {
             addr_of_mut!((*tracking_ptr).length).write_bytes(0, 1);
+            addr_of_mut!((*tracking_ptr).capacity).write_bytes(0, 1);
+            addr_of_mut!((*tracking_ptr).indices).write_bytes(0, 1);
+
+            assert!(
+                size_of::<[I; N]>() == (N * size_of::<I>()),
+                "Array sizing check"
+            );
+
+            for i in 0..(*tracking_ptr).indices.len() {
+                console_log!("I: {:?}", i);
+                //                if (*tracking_ptr).indices[i] != 0 {
+                //                    panic!();
+                //                }
+            }
         }
     }
-
-    pub(super) fn start_frame() {}
-
-    pub(super) fn end_frame() {}
 }

@@ -134,7 +134,7 @@ fn main() -> Result<(), JsValue> {
 
     let mut webcore: WebCore = WebCore::new();
     webcore.init();
-    webcore.addkeyvec::<TestObject, u8, 256>();
+    webcore.addkeyvec::<TestObject, u8, 20>();
 
     // BEGIN WEBGL CODE EXAMPLE SNIPPET
     // URL: https://rustwasm.github.io/docs/wasm-bindgen/examples/webgl.html
