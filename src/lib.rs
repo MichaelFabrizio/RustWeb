@@ -3,10 +3,11 @@
 // 2) python3 -m http.server
 // 3) http://localhost:8000
 
-pub mod context;
+pub(crate) mod context;
 
 #[macro_use]
-pub mod wasm_allocator;
+pub(crate) mod wasm_allocator;
+pub(crate) mod web_core;
 
 extern crate core;
 extern crate wasm_bindgen;
@@ -17,7 +18,7 @@ use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlShader};
 
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use crate::wasm_allocator::*;
+use crate::web_core::WebCore;
 
 #[wasm_bindgen]
 extern "C" {
@@ -41,6 +42,10 @@ pub fn greet(name: &str) {
     alert(&format!("Hello, {}!", name));
 }
 */
+
+struct TestObject {
+    a: i64,
+}
 
 // BEGIN WEBGL PROGRAM LINKING EXAMPLE
 // AND SHADER COMPILATION FUNCTIONS
@@ -125,21 +130,11 @@ fn main() -> Result<(), JsValue> {
         .performance()
         .expect("performance should be available");
 
-    let wasm_alloc_size = WasmAllocator::memory_size();
-    console_log!("Alloc size {}", wasm_alloc_size);
-
-    let wasm_allocator = WasmAllocator {
-        lead_ptr: core::ptr::null_mut(),
-        tracking_ptr: core::ptr::null_mut(),
-    };
-
-    let layout = std::alloc::Layout::from_size_align(65536, 2);
-
-    let returned_ptr = unsafe { WasmAllocator::internal_alloc(1) };
-
-    console_log!("Returned ptr: {:?}", returned_ptr);
-
     console_log!("the current time (in ms) is {}", performance.now());
+
+    let mut webcore: WebCore = WebCore::new();
+    webcore.init();
+    webcore.addkeyvec::<TestObject, u8, 20>();
 
     // BEGIN WEBGL CODE EXAMPLE SNIPPET
     // URL: https://rustwasm.github.io/docs/wasm-bindgen/examples/webgl.html
