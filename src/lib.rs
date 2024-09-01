@@ -133,8 +133,7 @@ fn main() -> Result<(), JsValue> {
     console_log!("the current time (in ms) is {}", performance.now());
 
     let mut webcore: WebCore = WebCore::new();
-    webcore.init();
-    webcore.addkeyvec::<TestObject, u8, 20>();
+    webcore.addkeyvec::<TestObject, u16, 4000>();
 
     // BEGIN WEBGL CODE EXAMPLE SNIPPET
     // URL: https://rustwasm.github.io/docs/wasm-bindgen/examples/webgl.html
