@@ -5,7 +5,7 @@
 
 pub(crate) mod context;
 
-#[macro_use]
+pub(crate) mod indexing;
 pub(crate) mod wasm_allocator;
 pub(crate) mod web_core;
 
@@ -45,6 +45,12 @@ pub fn greet(name: &str) {
 
 struct TestObject {
     a: i64,
+}
+
+impl Default for TestObject {
+    fn default() -> Self {
+        TestObject { a: 65538 }
+    }
 }
 
 // BEGIN WEBGL PROGRAM LINKING EXAMPLE
@@ -133,7 +139,21 @@ fn main() -> Result<(), JsValue> {
     console_log!("the current time (in ms) is {}", performance.now());
 
     let mut webcore: WebCore = WebCore::new();
-    webcore.addkeyvec::<TestObject, u16, 4000>();
+    let test_keyvec = webcore.addkeyvec::<TestObject, u16, 4000>();
+
+    unsafe {
+        (*test_keyvec).add(1);
+
+        let test_obj_0 = (*test_keyvec).find_mut(0);
+        let test_obj_1 = (*test_keyvec).find_mut(1);
+        let test_obj_45 = (*test_keyvec).find_mut(45);
+
+        test_obj_0.a = 1201;
+        test_obj_1.a = 85;
+
+        console_log!("Value: {}", test_obj_1.a);
+        console_log!("Value-zero-test: {}", test_obj_45.a);
+    }
 
     // BEGIN WEBGL CODE EXAMPLE SNIPPET
     // URL: https://rustwasm.github.io/docs/wasm-bindgen/examples/webgl.html

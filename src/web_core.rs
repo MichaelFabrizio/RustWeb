@@ -1,78 +1,164 @@
-use core::fmt::Debug;
+use std::convert::TryFrom;
 use std::mem::{align_of, size_of};
-use std::ptr::addr_of_mut;
+use std::ptr::{addr_of_mut, read, write};
 
 use super::{console_log, log};
+use crate::indexing::{Index, IndexType, UnsignedType};
 use crate::wasm_allocator::WasmAllocator;
-
-trait UnsignedType: Copy + Debug {
-    const MAX_VALUE: usize;
-}
-
-impl UnsignedType for u8 {
-    const MAX_VALUE: usize = 255;
-}
-
-impl UnsignedType for u16 {
-    const MAX_VALUE: usize = 65535;
-}
-
-impl UnsignedType for u32 {
-    const MAX_VALUE: usize = 4294967295;
-}
-
-trait IndexType: PartialEq<i32> {}
-
-struct Index<T: UnsignedType>(T);
-
-impl IndexType for Index<u8> {}
-impl IndexType for Index<u16> {}
-impl IndexType for Index<u32> {}
-
-impl PartialEq<i32> for Index<u8> {
-    fn eq(&self, other: &i32) -> bool {
-        // Safe to 'upcast' a u8 to i32 because no loss of bit information
-        if (self.0 as i32) == *other {
-            return true;
-        } else {
-            return false;
-        }
-    }
-}
-
-impl PartialEq<i32> for Index<u16> {
-    fn eq(&self, other: &i32) -> bool {
-        // Safe to 'upcast' a u16 to i32 because no loss of bit information
-        if (self.0 as i32) == *other {
-            return true;
-        } else {
-            return false;
-        }
-    }
-}
-
-impl PartialEq<i32> for Index<u32> {
-    fn eq(&self, other: &i32) -> bool {
-        // When the i32 value 'other' is negative, it cannot equal a u32.
-        // Handle this condition first.
-        if *other < 0 {
-            return false;
-        }
-
-        // When the i32 value 'other' is positive, or zero, we can safely 'upcast' it to a u32.
-        if self.0 == (*other as u32) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-}
 
 pub(crate) struct KeyVector<T: Sized, I: UnsignedType, const N: usize> {
     length: usize,
-    capacity: usize,
     indices: [Index<I>; N],
     data: [T; N],
+}
+
+impl<T: Sized, I: UnsignedType, const N: usize> KeyVector<T, I, N> {
+    pub(crate) fn add(&mut self, key: usize)
+    where
+        T: Default,
+        Index<I>: IndexType,
+    {
+        // Invalid key bounds
+        if key == 0 || key >= N {
+            return;
+        }
+
+        if key == (self.length + 1) {
+            self.add_equal_key_checked(key);
+            return;
+        }
+    }
+
+    pub(crate) fn find(&self, key: usize) -> &T
+    where
+        T: Default,
+        Index<I>: IndexType,
+    {
+        if key >= N {
+            return &self.data[0];
+        }
+
+        if key <= self.length {
+            if key == self.indices[key].into() {
+                return &self.data[key];
+            }
+            return &self.data[0];
+        }
+
+        let key_location: usize = self.indices[key].into();
+        return &self.data[key_location];
+    }
+
+    pub(crate) fn find_mut(&mut self, key: usize) -> &mut T
+    where
+        T: Default,
+        Index<I>: IndexType,
+    {
+        if key >= N {
+            return &mut self.data[0];
+        }
+
+        if key <= self.length {
+            if key == self.indices[key].into() {
+                return &mut self.data[key];
+            }
+            return &mut self.data[0];
+        }
+
+        let key_location: usize = self.indices[key].into();
+        return &mut self.data[key_location];
+    }
+
+    fn add_equal_key_checked(&mut self, key: usize)
+    where
+        T: Default,
+        Index<I>: IndexType,
+    {
+        if self.indices[key] != 0 {
+            return;
+        }
+
+        let index_key = Self::usize_to_index(key);
+        self.indices[key] = index_key;
+
+        let src: T = Default::default();
+        let dst = addr_of_mut!(self.data[key]);
+        unsafe {
+            write(dst, src);
+        }
+
+        self.length += 1;
+    }
+
+    fn add_greater_key_checked(&mut self, key: usize)
+    where
+        T: Default,
+        Index<I>: IndexType,
+    {
+        if self.indices[key] != 0 {
+            return;
+        }
+
+        let index_pointer: usize = self.indices[self.length + 1].into();
+
+        // BRANCH POSSIBILITY #1
+        // CONDITION: self.indices[self.length + 1] != 0
+        // *(Requires extra swapping logic)*
+
+        if index_pointer != 0 {
+            self.indices[self.length + 1] = Self::usize_to_index(self.length + 1);
+            self.indices[index_pointer] = Self::usize_to_index(key);
+            self.indices[key] = Self::usize_to_index(index_pointer);
+
+            unsafe {
+                let src = read(&self.data[index_pointer]);
+                let dst = addr_of_mut!(self.data[self.length + 1]);
+                write(dst, src);
+
+                let src: T = Default::default();
+                let dst = addr_of_mut!(self.data[index_pointer]);
+                write(dst, src);
+            }
+            self.length += 1;
+            return;
+        }
+
+        // BRANCH POSSIBILITY #2
+        // CONDITION: self.indices[self.length + 1] == 0
+        // *(Free to place greater key directly at self.length + 1)*
+
+        self.indices[self.length + 1] = Self::usize_to_index(key);
+        self.indices[key] = Self::usize_to_index(self.length + 1);
+
+        unsafe {
+            let src: T = Default::default();
+            let dst = addr_of_mut!(self.data[self.length + 1]);
+            write(dst, src);
+        }
+        self.length += 1;
+    }
+
+    fn usize_to_index(key: usize) -> Index<I>
+    where
+        Index<I>: IndexType,
+    {
+        let downcast_result = Index::<I>::try_from(key);
+
+        // Match statement below can be removed once #[derive(Debug)] is correctly implemented for
+        // enums.
+        //
+        // Replace above with:
+        // let result = Index::<I>::try_from(key).expect("Error: {:?}");
+
+        if let Ok(valid_index) = downcast_result {
+            // TODO: Remove console log
+            console_log!("Success: {:?}", valid_index);
+            return valid_index;
+        } else {
+            console_log!("Error: Usize bad downcast");
+            panic!();
+        }
+    }
 }
 
 pub(super) struct WebCore {
@@ -98,9 +184,12 @@ impl WebCore {
     // Once Placement New is possible, we can ideally separate the KeyVector back into its own
     // module (we currently need it placed here to access the private fields - so we can write
     // bytes to these private fields).
-    pub(super) fn addkeyvec<T: Sized, I: UnsignedType, const N: usize>(&mut self)
+    pub(super) fn addkeyvec<T: Sized, I: UnsignedType, const N: usize>(
+        &mut self,
+    ) -> *mut KeyVector<T, I, N>
     where
-        Index<I>: PartialEq<i32>,
+        T: Default,
+        Index<I>: IndexType,
     {
         let tracking_ptr_usize = self.wasm_allocator.tracking_ptr as usize;
 
@@ -142,37 +231,42 @@ impl WebCore {
         }
         // At this stage:
         // tracking_ptr is suitably aligned to be converted into *mut KeyVector<T, I, N>
-        let tracking_ptr = self.wasm_allocator.tracking_ptr as *mut KeyVector<T, I, N>;
+        let casted_ptr = self.wasm_allocator.tracking_ptr as *mut KeyVector<T, I, N>;
 
         // Because placement new is not available, we initialize the field addresses of
-        // the first three variables (length, capacity, and indices set to ZERO.)
+        // the first two variables (length, and indices set to ZERO.)
 
         unsafe {
-            addr_of_mut!((*tracking_ptr).length).write_bytes(0, 1);
-            addr_of_mut!((*tracking_ptr).capacity).write_bytes(0, 1);
+            addr_of_mut!((*casted_ptr).length).write_bytes(0, 1);
             // WE *MUST* CONFIRM THIS ZEROS THE ENTIRE ARRAY!!!
-            addr_of_mut!((*tracking_ptr).indices).write_bytes(0, 1);
+            addr_of_mut!((*casted_ptr).indices).write_bytes(0, 1);
 
-            assert!(
-                size_of::<[I; N]>() == (N * size_of::<I>()),
-                "Array sizing check"
-            );
-            // This confirms that all values within the array [Index<I>; N] are properly ZEROED.
-            // This is ONLY FOR TESTING PURPOSES, ensures that the code above:
+            // This confirms that all values within the array [Index<I>; N] are cleared to zero.
+            // The entire array [Index<I>; N] is cycled
+            // Each value is tested against zero.
             //
-            // addr_of_mut!((*tracking_ptr).indices).write_bytes(0, 1);
-            //
-            // ... has indeed cleared the entire array.
-            for i in 0..(*tracking_ptr).indices.len() {
-                if (*tracking_ptr).indices[i] != 0 {
+            for i in 0..(*casted_ptr).indices.len() {
+                if (*casted_ptr).indices[i] != 0 {
                     console_log!(
                         "Invalid zeroing!!! I: {:?}, Value: {:?}",
                         i,
-                        (*tracking_ptr).indices[i].0
+                        (*casted_ptr).indices[i].0
                     );
                     panic!();
                 }
             }
+
+            // Set zero element to a default value
+            let src: T = Default::default();
+            let dst = addr_of_mut!((*casted_ptr).data[0]);
+            std::ptr::write(dst, src);
         }
+
+        // TODO: Subtract byte size from wasm_allocator.allocation_size
+
+        // TODO: Move tracking pointer by byte size
+
+        // TODO: Return *mut KeyVector<T, I, N> (or consider RefCell or something?)
+        return casted_ptr;
     }
 }
