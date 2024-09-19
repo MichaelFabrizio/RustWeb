@@ -230,8 +230,50 @@ impl<T: Sized, I: UnsignedType, const N: usize> KeyVector<T, I, N> {
         self.length += 1;
     }
 
-    fn add_greater_key_unchecked(&mut self, key: usize, swap_key: usize) {
-        todo!();
+    fn add_greater_key_unchecked(&mut self, key: usize, swap_key: usize)
+    where
+        T: Default,
+        Index<I>: IndexType,
+    {
+        let index_pointer: usize = self.indices[self.length + 1].into();
+
+        if index_pointer != 0 {
+            self.indices[self.length + 1] = Self::usize_to_index(self.length + 1);
+            self.indices[index_pointer] = Self::usize_to_index(swap_key);
+            self.indices[swap_key] = Self::usize_to_index(index_pointer);
+
+            unsafe {
+                let src = read(&self.data[index_pointer]);
+                let dst = addr_of_mut!(self.data[self.length + 1]);
+                write(dst, src);
+
+                let src = read(&self.data[key]);
+                let dst = addr_of_mut!(self.data[index_pointer]);
+                write(dst, src);
+
+                let src: T = Default::default();
+                let dst = addr_of_mut!(self.data[key]);
+                write(dst, src);
+            }
+
+            self.length += 1;
+            return;
+        }
+
+        self.indices[self.length + 1] = Self::usize_to_index(swap_key);
+        self.indices[swap_key] = Self::usize_to_index(self.length + 1);
+
+        unsafe {
+            let src = read(&self.data[key]);
+            let dst = addr_of_mut!(self.data[self.length + 1]);
+            write(dst, src);
+
+            let src: T = Default::default();
+            let dst = addr_of_mut!(self.data[key]);
+            write(dst, src);
+        }
+
+        self.length += 1;
     }
 
     fn usize_to_index(key: usize) -> Index<I>
