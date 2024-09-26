@@ -17,8 +17,8 @@ h1 {
         "header header"
         "sidebar content"
         "sidebar footer";
-    grid-template-columns: 1fr 3fr;
-    gap: 20px;
+    grid-template-columns: 1fr 4fr;
+    gap: 10px;
 }
 
 .SectionGrid > header {
@@ -40,11 +40,19 @@ h1 {
   border: 2px solid rgb(79,185,227);
 }
 
-.SectionGrid > article {
+.SectionGrid > .Content {
   grid-area: content;
   color: #dedede;
   border-radius: 5px;
+  background-color: #121426;
+  border: 2px solid rgb(79,185,227);
+}
+
+.SectionGrid > .Content > .BlogPreview {
+  color: #dedede;
+  border-radius: 5px;
   padding: 10px;
+  margin: 10px 5px 10px;
   background-color: #121426;
   border: 2px solid rgb(79,185,227);
 }
